@@ -1,0 +1,25 @@
+version: '3.4'
+
+services:
+  php:
+    build: "./docker/php"
+    container_name: php
+    command: "sh -c 'mkdir -p /root/.ssh && cp -r /root/host-ssh-keys/* /root/.ssh && chown -R root:root /root/.ssh && php-fpm'"
+    volumes:
+      - "../platform.loc/:/var/www/platform.loc:delegated"
+      - "~/.ssh:/root/host-ssh-keys:ro,delegated"
+  nginx:
+    image: nginx:stable-alpine
+    container_name: rl-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "./config/nginx/conf.d/dev.conf:/etc/nginx/conf.d/dev.conf"
+      - "./config/nginx/ssl/:/etc/nginx/ssl/"
+      - "./config/nginx/snippets/:/etc/nginx/snippets/"
+      - "./var/log/platform.loc/:/var/log/platform.loc"
+      - "../platform.loc/:/var/www/platform.loc"
+    depends_on:
+      - php
+
