@@ -2,15 +2,18 @@ version: '3.4'
 
 services:
   php:
-    build: "./docker/php"
+    build: "./php"
     container_name: php
     command: "sh -c 'mkdir -p /root/.ssh && cp -r /root/host-ssh-keys/* /root/.ssh && chown -R root:root /root/.ssh && php-fpm'"
+    environment:
+      ENABLE_MODULES: apcu
     volumes:
       - "../platform.loc/:/var/www/platform.loc:delegated"
+      - "../management-platform.local/:/var/www/management-platform.local:delegated"
       - "~/.ssh:/root/host-ssh-keys:ro,delegated"
   nginx:
     image: nginx:stable-alpine
-    container_name: rl-nginx
+    container_name: nginx
     ports:
       - "80:80"
       - "443:443"
@@ -18,8 +21,29 @@ services:
       - "./config/nginx/conf.d/dev.conf:/etc/nginx/conf.d/dev.conf"
       - "./config/nginx/ssl/:/etc/nginx/ssl/"
       - "./config/nginx/snippets/:/etc/nginx/snippets/"
-      - "./var/log/platform.loc/:/var/log/platform.loc"
+
+      - "./var/log/:/var/log"
       - "../platform.loc/:/var/www/platform.loc"
+
+      - "../management-platform.local/:/var/www/management-platform.local"
     depends_on:
       - php
-
+  db:
+    build:
+      context: './mysql'
+    container_name: db
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_USER=florin
+      - MYSQL_PASSWORD=pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - "./mysql-data:/var/lib/mysql"
+      - "./var/log/mysql:/var/log/mysql"
+  memcached:
+    container_name: memcached
+    image: memcached:latest
+    ports:
+      - 11211:11211
